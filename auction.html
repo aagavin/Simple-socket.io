@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="X-UA-Compatible" content="ie=edge">
+  <title>Auction</title>
+  <link rel="stylesheet" type="text/css" href="style.css">
+  <script src="/socket.io/socket.io.js"></script>
+  <script>
+    document.addEventListener('DOMContentLoaded', event => {
+      const socket = io();
+      const formEle = document.getElementById('form');
+      const desEle = document.getElementById('description');
+      const priceEle = document.getElementById('startPrice');
+      const bidEle = document.getElementById('bidding');
+      const timeEle = document.getElementById('timmer');
+      const itemDes = bidEle.children[0];
+      const itemPrice = bidEle.children[1];
+      let timmer = 30;
+      let interval;
+
+      formEle.addEventListener('submit', e => {
+        e.preventDefault();
+
+        socket.emit('biddingStarted', { description: desEle.value, price: priceEle.value });
+        formEle.classList.replace('show', 'hide');
+        bidEle.classList.replace('hide', 'show');
+
+        itemDes.textContent = 'Item Descriptin: ' + desEle.value;
+        itemPrice.textContent = 'Starting Bid: $' + priceEle.value;
+
+        // person running auction will handle timmer
+        interval = setInterval(() => {
+          if (timmer === 0) {
+            clearInterval(interval);
+            timeEle.textContent = 'Auction complet';
+            socket.emit('done', true);
+
+            setTimeout(() => {
+              // reset state
+              timmer = 30;
+              formEle.classList.replace('hide', 'show');
+              bidEle.classList.replace('show', 'hide');
+            }, 800);
+            return;
+          }
+          socket.emit('time', timmer);
+          timeEle.textContent = `Time Remaining: ${timmer}`;
+          timmer--
+        }, 1000)
+      });
+
+      socket.on('newBid', msg => {
+        itemPrice.style.color = "#f00";
+        itemPrice.textContent = `New bid by ${msg.name}: $${msg.bid}`;
+        setTimeout(() => itemPrice.style.color = "#000", 300);
+      });
+    });
+  </script>
+</head>
+
+<body>
+  <h1>Auction:</h1>
+  <form id="form" action="" class="show">
+    <label for="description">Item Description: </label><input name="description" id="description" type="text"
+      required><br>
+    <label for="startPrice">Starting Bid Price: $</label><input name="startPrice" id="startPrice" type="number"
+      required><br>
+    <input type="submit" value="Start Bidding">
+  </form>
+  <!-- Top tem description, current top bid, and the name of the current top bidder. -->
+  <div id="bidding" class="hide">
+    <h2></h2>
+    <h3></h3>
+  </div>
+  <div id="timmer">
+  </div>
+
+</body>
+
+</html>

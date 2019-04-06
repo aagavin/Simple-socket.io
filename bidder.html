@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="X-UA-Compatible" content="ie=edge">
+  <title>Bidder Page</title>
+  <link rel="stylesheet" type="text/css" href="style.css">
+  <script src="/socket.io/socket.io.js"></script>
+  <script>
+    document.addEventListener('DOMContentLoaded', event => {
+      const socket = io();
+      const name = '';
+      const waitEle = document.getElementById('waitMsg');
+      const bidEle = document.getElementById('bidding');
+      const timeEle = document.getElementById('timmer');
+      const itemDes = bidEle.children[0];
+      const itemPrice = bidEle.children[1];
+      const nameEle = document.getElementById('name');
+      const newBidEle = document.getElementById('newBid');
+
+      socket.on('biddingStarted', msg => {
+        waitEle.classList.replace('show', 'hide');
+        bidEle.classList.replace('hide', 'show');
+
+        itemDes.textContent = 'Item Descriptin: ' + msg.description;
+        itemPrice.textContent = 'Starting Bid: $' + msg.price;
+      });
+
+      socket.on('newBid', msg => {
+        itemPrice.style.color = "#f00";
+        itemPrice.textContent = `New bid by ${msg.name}: $${msg.bid}`;
+        setTimeout(() => itemPrice.style.color = "#000", 300);
+
+      });
+
+      socket.on('time', time => timeEle.textContent = `Time Remaining: ${time}`);
+      socket.on('done', done => {
+        timeEle.textContent = 'Auction complet';
+        // reset state
+        setTimeout(() => {
+          waitEle.classList.replace('hide', 'show');
+          bidEle.classList.replace('show', 'hide');
+        }, 800);
+
+      });
+
+      document.getElementById('form').addEventListener('submit', e => {
+        e.preventDefault();
+        socket.emit('newBid', { name: nameEle.value, bid: newBidEle.value });
+      });
+
+    });
+  </script>
+</head>
+
+<body>
+  <h1>Bidder</h1>
+  <h2 id="waitMsg" class="show">Waiting for auction to begin</h2>
+  <div id="timmer">
+  </div>
+  <div id="bidding" class="hide">
+    <h2></h2>
+    <h3></h3>
+    <div id="newBids">
+      <form id="form" action="">
+        <label for="name">Name: </label><input name="name" id="name" type="text" required><br>
+        <label for="newBid">New Bid Price: $</label><input name="newBid" id="newBid" type="number" required><br>
+        <input type="submit" value="Submit Bid">
+      </form>
+    </div>
+  </div>
+</body>
+
+</html>
